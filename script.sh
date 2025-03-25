@@ -1,3 +1,3 @@
-rm test.exe
-g++ -std=c++17 -O3 test.cpp -o test
-./test.exe
+rm test
+g++ -o test test.cpp -lpthread -O3
+./test
