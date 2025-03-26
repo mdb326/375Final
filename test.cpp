@@ -4,7 +4,7 @@
 #include <chrono>
 #include <fstream>
 #include <string>
-#include <unistd.h> // For sleep
+#include <unistd.h>
 
 #define NUM_THREADS 4
 #define NUM_ITERATIONS 1000000

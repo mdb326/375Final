@@ -5,6 +5,8 @@
 #include <random>
 #include <mutex>
 #include <shared_mutex>
+#include <fstream>
+#include <iostream>
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
@@ -16,6 +18,17 @@ std::chrono::duration<double> times[THREADS];
 //std::mutex m;
 std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
+
+// Function to read power usage from the powercap interface
+double read_power(const std::string& power_file) {
+    std::ifstream power_stream(power_file);
+    double power = 0.0;
+    if (power_stream.is_open()) {
+        power_stream >> power;
+        power_stream.close();
+    }
+    return power;
+}
 
 // Generates a random int between min and max (inclusive)
 int generateRandomInt(int min, int max) {
@@ -75,6 +88,7 @@ float balance(std::map<int, float>& bank, bool threaded, int threadAmt){
 
 void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
     using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     int threadAmt = ITERATIONS / iter;
     for(int i = 0; i < iter; i++){
@@ -90,8 +104,11 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
         }
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
     times[threadNum] = exec_time_i;
+    std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 
 int main(int argc, char **argv) {
@@ -110,7 +127,7 @@ int main(int argc, char **argv) {
             th.join();
         }
 
-
+        std::cout << "---------" << std::endl;
         double maxTime = 0.0;
         for(int i = 0; i < THREADS; i++){
             if(times[i].count() > maxTime){
