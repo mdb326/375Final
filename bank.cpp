@@ -10,7 +10,7 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 8
+#define THREADS 16
 #define ITERATIONS 2000000
 
 //is there a dfiference between vector and array here?
@@ -19,7 +19,7 @@ std::chrono::duration<double> times[THREADS];
 std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
 
-// Function to read power usage from the powercap interface
+//Function to read power usage from the interface
 double read_power(const std::string& power_file) {
     std::ifstream power_stream(power_file);
     double power = 0.0;
