@@ -11,7 +11,7 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 28
+#define THREADS 16
 #define ITERATIONS 2000000
 
 //is there a dfiference between vector and array here?
@@ -112,6 +112,10 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 
+void checkAffinity(int threadNum){
+    std::cout << "Thread #" << threadNum << ": on CPU " << sched_getcpu() << "\n";
+}
+
 int main(int argc, char **argv) {
     // std::cout << std::thread::hardware_concurrency() << std::endl;
     std::map<int, float> bank; //id, amount
@@ -121,24 +125,43 @@ int main(int argc, char **argv) {
     }
     //create threads and do their work
     std::thread threads[THREADS];
-        for(int i = 0; i < THREADS; i++){
-            threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
-        }
 
-        for (auto &th : threads){
-            th.join();
-        }
+    for(unsigned int i = 0; i < THREADS; i++){
+        // cpu_set_t cpuset;
+        // CPU_ZERO(&cpuset);
+        // CPU_SET(i, &cpuset);
+        // int rc = pthread_setaffinity_np(threads[i].native_handle(),
+        //                                 sizeof(cpu_set_t), &cpuset);
+    }
 
-        std::cout << "---------" << std::endl;
-        double maxTime = 0.0;
-        for(int i = 0; i < THREADS; i++){
-            if(times[i].count() > maxTime){
-                maxTime = times[i].count();
-            }
-        }
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
+        // threads[i] = std::thread(checkAffinity, i);
+    }
 
-        printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
-    
+    for (auto &th : threads){
+        th.join();
+    }
+
+    for(int i = 0; i < THREADS; i++){
+        // threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
+        threads[i] = std::thread(checkAffinity, i);
+    }
+
+    for (auto &th : threads){
+        th.join();
+    }
+
+    std::cout << "---------" << std::endl;
+    double maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+
+    printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
+
 
     do_work(std::ref(bank), 0, ITERATIONS, false);
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
