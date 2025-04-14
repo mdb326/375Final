@@ -126,31 +126,33 @@ int main(int argc, char **argv) {
     //create threads and do their work
     std::thread threads[THREADS];
 
-    for(unsigned int i = 0; i < THREADS; i++){
-        // cpu_set_t cpuset;
-        // CPU_ZERO(&cpuset);
-        // CPU_SET(i, &cpuset);
-        // int rc = pthread_setaffinity_np(threads[i].native_handle(),
-        //                                 sizeof(cpu_set_t), &cpuset);
-    }
+
 
     for(int i = 0; i < THREADS; i++){
         threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
         // threads[i] = std::thread(checkAffinity, i);
     }
 
+    for(unsigned int i = 0; i < THREADS; i++){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(i, &cpuset);
+        int rc = pthread_setaffinity_np(threads[i].native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+    }
+
     for (auto &th : threads){
         th.join();
     }
 
-    for(int i = 0; i < THREADS; i++){
-        // threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
-        threads[i] = std::thread(checkAffinity, i);
-    }
+    // for(int i = 0; i < THREADS; i++){
+    //     // threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
+    //     threads[i] = std::thread(checkAffinity, i);
+    // }
 
-    for (auto &th : threads){
-        th.join();
-    }
+    // for (auto &th : threads){
+    //     th.join();
+    // }
 
     std::cout << "---------" << std::endl;
     double maxTime = 0.0;
