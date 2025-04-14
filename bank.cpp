@@ -5,6 +5,7 @@
 #include <random>
 #include <mutex>
 #include <shared_mutex>
+#include <array>
 #include <fstream>
 #include <iostream>
 
