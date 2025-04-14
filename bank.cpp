@@ -11,7 +11,7 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 16
+#define THREADS 28
 #define ITERATIONS 2000000
 
 //is there a dfiference between vector and array here?
@@ -113,6 +113,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
 }
 
 int main(int argc, char **argv) {
+    // std::cout << std::thread::hardware_concurrency() << std::endl;
     std::map<int, float> bank; //id, amount
     //fill up accounts
     for(int i = 0; i < ACCOUNTS; i++){
@@ -145,4 +146,6 @@ int main(int argc, char **argv) {
     while (it != bank.end()) {
         it = bank.erase(it);  // erase returns an iterator to the next element
     }
+    std::cout <<sched_getcpu() << std::endl;
+
 }
