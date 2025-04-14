@@ -12,7 +12,7 @@
 #define ACCOUNTS 1000
 #define TOTAL 100000
 #define THREADS 16
-#define ITERATIONS 2000000
+#define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
@@ -150,6 +150,14 @@ int main(int argc, char **argv) {
     //     threads[i] = std::thread(checkAffinity, i);
     // }
 
+    // for(unsigned int i = 0; i < THREADS; i++){
+    //     cpu_set_t cpuset;
+    //     CPU_ZERO(&cpuset);
+    //     CPU_SET(i, &cpuset);
+    //     int rc = pthread_setaffinity_np(threads[i].native_handle(),
+    //                                     sizeof(cpu_set_t), &cpuset);
+    // }
+
     // for (auto &th : threads){
     //     th.join();
     // }
@@ -171,6 +179,10 @@ int main(int argc, char **argv) {
     while (it != bank.end()) {
         it = bank.erase(it);  // erase returns an iterator to the next element
     }
-    std::cout <<sched_getcpu() << std::endl;
 
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    std::this_thread::sleep_for(std::chrono::milliseconds(334));
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    std::cout << "energy used: " << energy_used << " J\n";
 }
