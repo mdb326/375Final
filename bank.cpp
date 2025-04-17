@@ -119,6 +119,9 @@ void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool t
         if(tot != TOTAL){
             printf("Balance failed: %f\n", tot);
         }
+        else{
+            std::cout << "SUCCESS" << std::endl;
+        }
     }
 }
 
@@ -139,7 +142,7 @@ int main(int argc, char **argv) {
 
 
     for(int i = 0; i < THREADS-BALANCETHREADS; i++){
-        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
+        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / (THREADS-BALANCETHREADS), true);
     }
     for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
         threads[i] = std::thread(do_work_balance, std::ref(bank), i, ITERATIONS / THREADS, true);
