@@ -176,7 +176,8 @@ int main(int argc, char **argv) {
     for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(27-i, &cpuset);
+        CPU_SET(27-i, &cpuset); //Ok,s o changing this to actually have them run on slower cores makes a huge difference in energy and a
+                                //negigible one in time, still cheater method tho
         int rc = pthread_setaffinity_np(threads[i].native_handle(),
                                         sizeof(cpu_set_t), &cpuset);
     }

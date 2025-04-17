@@ -24,8 +24,20 @@
 # echo 5300000 | sudo tee /sys/devices/system/cpu/cpu11/cpufreq/scaling_max_freq
 # echo 5300000 | sudo tee /sys/devices/system/cpu/cpu12/cpufreq/scaling_max_freq
 
+# echo 4200000 | sudo tee /sys/devices/system/cpu/cpu17/cpufreq/scaling_max_freq
+# echo 4200000 | sudo tee /sys/devices/system/cpu/cpu18/cpufreq/scaling_max_freq
+
 echo 4200000 | sudo tee /sys/devices/system/cpu/cpu17/cpufreq/scaling_max_freq
 echo 4200000 | sudo tee /sys/devices/system/cpu/cpu18/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu19/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu20/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu21/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu22/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu23/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu24/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu25/cpufreq/scaling_max_freq
+echo 4200000 | sudo tee /sys/devices/system/cpu/cpu26/cpufreq/scaling_max_freq
+
 
 cat /sys/devices/system/cpu/cpu15/cpufreq/scaling_max_freq
 cat /sys/devices/system/cpu/cpu16/cpufreq/scaling_max_freq
