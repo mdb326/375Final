@@ -8,6 +8,7 @@
 #include <array>
 #include <fstream>
 #include <iostream>
+#include <condition_variable>
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
@@ -17,9 +18,10 @@
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
-//std::mutex m;
+std::mutex m;
 std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
+std::condition_variable balanceCV;
 
 //Function to read power usage from the interface
 double read_power(const std::string& power_file) {
@@ -99,10 +101,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
             deposit(bank, threaded, threadNum);
         }
         else{
-            float tot = balance(bank, threaded, threadAmt);
-            if(tot != TOTAL){
-                printf("Balance failed: %f\n", tot);
-            }
+            balanceCV.notify_one();
         }
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -111,6 +110,16 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
     times[threadNum] = exec_time_i;
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+}
+void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
+    while(true){
+        std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
+        balanceCV.wait(lock);
+        float tot = balance(bank, threaded, THREADS);
+        if(tot != TOTAL){
+            printf("Balance failed: %f\n", tot);
+        }
+    }
 }
 
 void checkAffinity(int threadNum){
@@ -129,15 +138,17 @@ int main(int argc, char **argv) {
 
 
 
-    for(int i = 0; i < THREADS; i++){
+    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
         threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
-        // threads[i] = std::thread(checkAffinity, i);
+    }
+    for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
+        threads[i] = std::thread(do_work_balance, std::ref(bank), i, ITERATIONS / THREADS, true);
     }
 
     for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){ //slow threads
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(27-i, &cpuset); //Ok,s o changing this to actually have them run on slower cores makes a huge difference in energy and a
+        CPU_SET(27-i, &cpuset); //Ok, so changing this to actually have them run on slower cores makes a huge difference in energy and a
                                 //negigible one in time, still cheater method tho
         int rc = pthread_setaffinity_np(threads[i].native_handle(),
                                         sizeof(cpu_set_t), &cpuset);
@@ -151,13 +162,21 @@ int main(int argc, char **argv) {
                                         sizeof(cpu_set_t), &cpuset);
     }
 
-    for (auto &th : threads){
-        th.join();
+    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
+        threads[i].join();
+    }
+
+    float tot = balance(bank, true, THREADS);
+    if(tot != TOTAL){
+        printf("Balance failed: %f\n", tot);
+    }
+    else {
+        std::cout << "SUCCESS" << std::endl;
     }
 
     std::cout << "---------" << std::endl;
     double maxTime = 0.0;
-    for(int i = 0; i < THREADS; i++){
+    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
         if(times[i].count() > maxTime){
             maxTime = times[i].count();
         }
