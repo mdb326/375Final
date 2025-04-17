@@ -113,6 +113,23 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     std::cout << "Deposit thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 
+void do_work_deposit(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
+    using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    int threadAmt = THREADS;
+    for(int i = 0; i < iter; i++){
+        deposit(bank, threaded, threadNum);
+
+    }
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
+    times[threadNum] = exec_time_i;
+    std::cout << "Deposit thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+}
+
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
     using namespace std::chrono;
     double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
@@ -149,10 +166,8 @@ int main(int argc, char **argv) {
     unsigned int depositIterations = (ITERATIONS * 95 / 100) / (THREADS-BALANCETHREADS);
     unsigned int balanceIterations = (ITERATIONS * 5 / 100) / BALANCETHREADS;
 
-    std::cout << "Deposit iterations: " << depositIterations << std::endl;
-
     for(int i = 0; i < THREADS-BALANCETHREADS; i++){
-        threads[i] = std::thread(do_work, std::ref(bank), i, depositIterations, true);
+        threads[i] = std::thread(do_work_deposit, std::ref(bank), i, depositIterations, true);
         // threads[i] = std::thread(checkAffinity, i);
     }
     for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
