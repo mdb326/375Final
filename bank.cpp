@@ -13,6 +13,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
+#define BALANCETHREADS 2
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
@@ -133,7 +134,16 @@ int main(int argc, char **argv) {
         // threads[i] = std::thread(checkAffinity, i);
     }
 
-    for(unsigned int i = 0; i < THREADS; i++){
+    for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){ //slow threads
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(27-i, &cpuset); //Ok,s o changing this to actually have them run on slower cores makes a huge difference in energy and a
+                                //negigible one in time, still cheater method tho
+        int rc = pthread_setaffinity_np(threads[i].native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+    }
+
+    for(unsigned int i = THREADS-BALANCETHREADS; i < THREADS; i++){ //fast for contains
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(i, &cpuset);
@@ -144,23 +154,6 @@ int main(int argc, char **argv) {
     for (auto &th : threads){
         th.join();
     }
-
-    // for(int i = 0; i < THREADS; i++){
-    //     // threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
-    //     threads[i] = std::thread(checkAffinity, i);
-    // }
-
-    // for(unsigned int i = 0; i < THREADS; i++){
-    //     cpu_set_t cpuset;
-    //     CPU_ZERO(&cpuset);
-    //     CPU_SET(i, &cpuset);
-    //     int rc = pthread_setaffinity_np(threads[i].native_handle(),
-    //                                     sizeof(cpu_set_t), &cpuset);
-    // }
-
-    // for (auto &th : threads){
-    //     th.join();
-    // }
 
     std::cout << "---------" << std::endl;
     double maxTime = 0.0;
