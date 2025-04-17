@@ -13,7 +13,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 8
+#define BALANCETHREADS 4
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
