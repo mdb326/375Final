@@ -25,5 +25,6 @@
 # echo 5300000 | sudo tee /sys/devices/system/cpu/cpu12/cpufreq/scaling_max_freq
 
 cat /sys/devices/system/cpu/cpu15/cpufreq/scaling_max_freq
+cat /sys/devices/system/cpu/cpu16/cpufreq/scaling_max_freq
 
 # CORES 0-15 run at 5,300,000, 16-27 at 4,200,000
