@@ -168,7 +168,6 @@ int main(int argc, char **argv) {
 
     for(int i = 0; i < THREADS-BALANCETHREADS; i++){
         threads[i] = std::thread(do_work_deposit, std::ref(bank), i, depositIterations, true);
-        // threads[i] = std::thread(checkAffinity, i);
     }
     for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
         threads[i] = std::thread(do_work_balance, std::ref(bank), i, balanceIterations, true);
@@ -216,5 +215,5 @@ int main(int argc, char **argv) {
     std::this_thread::sleep_for(std::chrono::milliseconds(334));
     double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
-    std::cout << "energy used: " << energy_used << " J\n";
+    std::cout << "energy used in 0.344s: " << energy_used << " J\n";
 }
