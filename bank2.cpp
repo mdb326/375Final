@@ -13,6 +13,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
+#define BALANCETHREADS 4
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
@@ -91,7 +92,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     using namespace std::chrono;
     double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    int threadAmt = ITERATIONS / iter;
+    int threadAmt = THREADS;
     for(int i = 0; i < iter; i++){
         int choice = generateRandomInt(0,99);
         if(choice < 95){
@@ -109,7 +110,27 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
     times[threadNum] = exec_time_i;
-    std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+    std::cout << "Deposit thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+}
+
+void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
+    using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    int threadAmt = THREADS;
+    for(int i = 0; i < iter; i++){
+        float tot = balance(bank, threaded, threadAmt);
+        if(tot != TOTAL){
+            printf("Balance failed: %f\n", tot);
+        }
+
+    }
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
+    times[threadNum] = exec_time_i;
+    std::cout << "Balance Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 
 void checkAffinity(int threadNum){
@@ -125,15 +146,28 @@ int main(int argc, char **argv) {
     }
     //create threads and do their work
     std::thread threads[THREADS];
+    unsigned int depositIterations = (ITERATIONS * 95 / 100) / (THREADS-BALANCETHREADS);
+    unsigned int balanceIterations = (ITERATIONS * 5 / 100) / BALANCETHREADS;
 
+    std::cout << "Deposit iterations: " << depositIterations << std::endl;
 
-
-    for(int i = 0; i < THREADS; i++){
-        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
+    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(bank), i, depositIterations, true);
         // threads[i] = std::thread(checkAffinity, i);
     }
+    for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
+        threads[i] = std::thread(do_work_balance, std::ref(bank), i, balanceIterations, true);
+    }
 
-    for(unsigned int i = 0; i < THREADS; i++){
+    for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(27-i, &cpuset);
+        int rc = pthread_setaffinity_np(threads[i].native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+    }
+
+    for(unsigned int i = THREADS-BALANCETHREADS; i < THREADS; i++){ //fast for contains
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(i, &cpuset);
@@ -144,23 +178,6 @@ int main(int argc, char **argv) {
     for (auto &th : threads){
         th.join();
     }
-
-    // for(int i = 0; i < THREADS; i++){
-    //     // threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / THREADS, true);
-    //     threads[i] = std::thread(checkAffinity, i);
-    // }
-
-    // for(unsigned int i = 0; i < THREADS; i++){
-    //     cpu_set_t cpuset;
-    //     CPU_ZERO(&cpuset);
-    //     CPU_SET(i, &cpuset);
-    //     int rc = pthread_setaffinity_np(threads[i].native_handle(),
-    //                                     sizeof(cpu_set_t), &cpuset);
-    // }
-
-    // for (auto &th : threads){
-    //     th.join();
-    // }
 
     std::cout << "---------" << std::endl;
     double maxTime = 0.0;
