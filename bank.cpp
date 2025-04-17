@@ -14,7 +14,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 2
+#define BALANCETHREADS 15
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
@@ -151,8 +151,7 @@ int main(int argc, char **argv) {
     for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){ //slow threads
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(27-i, &cpuset); //Ok, so changing this to actually have them run on slower cores makes a huge difference in energy and a
-                                //negigible one in time, still cheater method tho
+        CPU_SET(27-i, &cpuset);
         int rc = pthread_setaffinity_np(threads[i].native_handle(),
                                         sizeof(cpu_set_t), &cpuset);
     }
