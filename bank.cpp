@@ -15,7 +15,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 13
+#define BALANCETHREADS 8
 
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
@@ -144,18 +144,16 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
 }
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
     while(true){
-        if(balancesLeft > 0){
-            // std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
-            // balanceCV.wait(lock);
+        // if(balancesLeft > 0){
+            // balanceCV.notify_one();
+            std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
+            balanceCV.wait(lock);
         // }
-        
-        
-            balanceCounter++;
-            balancesLeft--;
-            float tot = balance(bank, threaded, THREADS);
-            if(tot != TOTAL){
-                printf("Balance failed: %f\n", tot);
-            }
+        balanceCounter++;
+        balancesLeft--;
+        float tot = balance(bank, threaded, THREADS);
+        if(tot != TOTAL){
+            printf("Balance failed: %f\n", tot);
         }   
         if(finished){
             return;
@@ -206,9 +204,9 @@ int main(int argc, char **argv) {
         threads[i].join();
     }
     finished = true;
-    for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
-        threads[i].join();
-    }
+    // for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
+    //     threads[i].join();
+    // }
     float tot = balance(bank, true, THREADS);
     if(tot != TOTAL){
         printf("Balance failed: %f\n", tot);
