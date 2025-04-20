@@ -9,18 +9,22 @@
 #include <fstream>
 #include <iostream>
 #include <condition_variable>
+#include <atomic>
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 3
+#define BALANCETHREADS 14
 
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
 std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
 std::condition_variable balanceCV;
+
+std::atomic<int> balanceCounter = 0;
+std::atomic<int> depositCounter = 0;
 
 //Function to read power usage from the interface
 double read_power(const std::string& power_file) {
@@ -97,9 +101,11 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     for(int i = 0; i < iter; i++){
         int choice = generateRandomInt(0,99);
         if(choice < 95){
+            depositCounter++;
             deposit(bank, threaded, threadNum);
         }
         else{
+            
             balanceCV.notify_one();
         }
     }
@@ -138,6 +144,7 @@ void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool t
     while(true){
         std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
         balanceCV.wait(lock);
+        balanceCounter++;
         float tot = balance(bank, threaded, THREADS);
         if(tot != TOTAL){
             printf("Balance failed: %f\n", tot);
@@ -219,4 +226,7 @@ int main(int argc, char **argv) {
     double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     std::cout << "energy used: " << energy_used << " J\n";
+
+    std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
+    std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
 }
