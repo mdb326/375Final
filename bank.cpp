@@ -14,9 +14,8 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 15
+#define BALANCETHREADS 3
 
-//is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
 std::array<std::mutex, ACCOUNTS> mutexes;
@@ -111,6 +110,30 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     times[threadNum] = exec_time_i;
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
+void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
+    using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    int threadAmt = ITERATIONS / iter;
+    for(int i = 0; i < iter; i++){
+        int choice = generateRandomInt(0,99);
+        if(choice < 95){
+            deposit(bank, threaded, threadNum);
+        }
+        else{
+            float tot = balance(bank, threaded, THREADS);
+            if(tot != TOTAL){
+                printf("Balance failed Single: %f\n", tot);
+            }
+        }
+    }
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
+    times[threadNum] = exec_time_i;
+    std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+}
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
     while(true){
         std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
@@ -118,9 +141,6 @@ void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool t
         float tot = balance(bank, threaded, THREADS);
         if(tot != TOTAL){
             printf("Balance failed: %f\n", tot);
-        }
-        else{
-            std::cout << "SUCCESS" << std::endl;
         }
     }
 }
@@ -187,7 +207,7 @@ int main(int argc, char **argv) {
     printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
 
-    do_work(std::ref(bank), 0, ITERATIONS, false);
+    do_work_single(std::ref(bank), 0, ITERATIONS, false);
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
