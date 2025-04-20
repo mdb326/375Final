@@ -15,7 +15,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 8
+#define BALANCETHREADS 3
 
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
@@ -23,8 +23,8 @@ std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
 std::condition_variable balanceCV;
 
-std::atomic<int> balanceCounter = 0;
-std::atomic<int> depositCounter = 0;
+// std::atomic<int> balanceCounter = 0;
+// std::atomic<int> depositCounter = 0;
 std::atomic<int> balancesLeft = 0;
 std::atomic<bool> finished = false;
 
@@ -100,15 +100,15 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     int threadAmt = ITERATIONS / iter;
-    for(int i = 0; i < iter; i++){
-        int choice = generateRandomInt(0,99);
-        if(choice < 95){
-            depositCounter++;
+    for (int i = 0; i < iter; i++) {
+        int choice = generateRandomInt(0, 99);
+        if (choice < 95) {
+            // depositCounter++;
             deposit(bank, threaded, threadNum);
-        }
-        else{
+        } else {
+            std::unique_lock<std::mutex> lock(m);
             balancesLeft++;
-            balanceCV.notify_one();
+            balanceCV.notify_all(); // Notify all in case no one is waiting yet
         }
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -142,20 +142,21 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
     times[threadNum] = exec_time_i;
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
-void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
-    while(true){
-        // if(balancesLeft > 0){
-            // balanceCV.notify_one();
-            std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
-            balanceCV.wait(lock);
-        // }
-        balanceCounter++;
-        balancesLeft--;
-        float tot = balance(bank, threaded, THREADS);
-        if(tot != TOTAL){
-            printf("Balance failed: %f\n", tot);
-        }   
-        if(finished){
+void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded) {
+    while (true) {
+        std::unique_lock<std::mutex> lock(m);
+        balanceCV.wait(lock, [] { return balancesLeft > 0 || finished; });
+
+        if (balancesLeft > 0) {
+            balancesLeft--;
+            lock.unlock();
+
+            // balanceCounter++;
+            float tot = balance(bank, threaded, THREADS);
+            if (tot != TOTAL) {
+                printf("Balance failed: %f\n", tot);
+            }
+        } else if (finished) {
             return;
         }
     }
@@ -239,7 +240,7 @@ int main(int argc, char **argv) {
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     std::cout << "energy used: " << energy_used << " J\n";
 
-    std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
-    std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
+    // std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
+    // std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
     std::cout << "LEFT: " << balancesLeft << std::endl;
 }
