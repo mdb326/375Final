@@ -15,7 +15,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 14
+#define BALANCETHREADS 13
 
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
@@ -25,6 +25,8 @@ std::condition_variable balanceCV;
 
 std::atomic<int> balanceCounter = 0;
 std::atomic<int> depositCounter = 0;
+std::atomic<int> balancesLeft = 0;
+std::atomic<bool> finished = false;
 
 //Function to read power usage from the interface
 double read_power(const std::string& power_file) {
@@ -105,7 +107,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
             deposit(bank, threaded, threadNum);
         }
         else{
-            
+            balancesLeft++;
             balanceCV.notify_one();
         }
     }
@@ -142,12 +144,21 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
 }
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
     while(true){
-        std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
-        balanceCV.wait(lock);
-        balanceCounter++;
-        float tot = balance(bank, threaded, THREADS);
-        if(tot != TOTAL){
-            printf("Balance failed: %f\n", tot);
+        if(balancesLeft > 0){
+            // std::unique_lock<std::mutex> lock(m); // just lock something so there's something to wait for?
+            // balanceCV.wait(lock);
+        // }
+        
+        
+            balanceCounter++;
+            balancesLeft--;
+            float tot = balance(bank, threaded, THREADS);
+            if(tot != TOTAL){
+                printf("Balance failed: %f\n", tot);
+            }
+        }   
+        if(finished){
+            return;
         }
     }
 }
@@ -194,7 +205,10 @@ int main(int argc, char **argv) {
     for(int i = 0; i < THREADS-BALANCETHREADS; i++){
         threads[i].join();
     }
-
+    finished = true;
+    for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
+        threads[i].join();
+    }
     float tot = balance(bank, true, THREADS);
     if(tot != TOTAL){
         printf("Balance failed: %f\n", tot);
@@ -229,4 +243,5 @@ int main(int argc, char **argv) {
 
     std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
     std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
+    std::cout << "LEFT: " << balancesLeft << std::endl;
 }
