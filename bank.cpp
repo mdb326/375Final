@@ -246,9 +246,9 @@ int main(int argc, char **argv) {
     printf("Total %d Threaded power: %lf seconds\n", THREADS, maxEnergy);
 
     
-
+    int number = 1200000;
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
-    myfile << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
+    myfile << number << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
