@@ -11,8 +11,9 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 28
+#define THREADS 16
 #define ITERATIONS 2000000
+#define CHANCE 30
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];
@@ -95,7 +96,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     int threadAmt = ITERATIONS / iter;
     for(int i = 0; i < iter; i++){
         int choice = generateRandomInt(0,99);
-        if(choice < 95){
+        if(choice < CHANCE){
             deposit(bank, threaded, threadNum);
         }
         else{
@@ -168,7 +169,7 @@ int main(int argc, char **argv) {
             maxEnergy = powers[i];
         }
     }
-    myfile << THREADS << "," << maxTime << "," << maxEnergy << std::endl;
+    myfile << CHANCE << "," << maxTime << "," << maxEnergy << std::endl;
     printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
 

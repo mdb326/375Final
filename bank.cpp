@@ -17,6 +17,7 @@
 #define THREADS 28
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
 #define BALANCETHREADS 4
+#define CHANCE 95
 
 std::chrono::duration<double> times[THREADS];
 double powers[THREADS];
@@ -104,7 +105,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     int threadAmt = ITERATIONS / iter;
     for (int i = 0; i < iter; i++) {
         int choice = generateRandomInt(0, 99);
-        if (choice < 95) {
+        if (choice < CHANCE) {
             // if (i == iter/2){
             //     std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
             //     std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
@@ -133,7 +134,7 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
     int threadAmt = ITERATIONS / iter;
     for(int i = 0; i < iter; i++){
         int choice = generateRandomInt(0,99);
-        if(choice < 95){
+        if(choice < CHANCE){
             deposit(bank, threaded, threadNum);
         }
         else{
@@ -152,6 +153,9 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded) {
+     using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     while (true) {
         std::unique_lock<std::mutex> lock(m);
         balanceCV.wait(lock, [&] { return balancesLeft > 0 || finished.load(); });
@@ -165,6 +169,13 @@ void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool t
                 printf("Balance failed: %f\n", tot);
             }
         } else if (finished) {
+            high_resolution_clock::time_point t2 = high_resolution_clock::now();
+            double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+            double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+            duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
+            times[threadNum] = exec_time_i;
+            powers[threadNum] = energy_used;
+            std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
             return;
         }
     }
@@ -249,7 +260,7 @@ int main(int argc, char **argv) {
     int number1 = 2300000;
     int number2 = 1200000;
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
-    myfile << THREADS << "," << number1 << "," << number2 << "," << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
+    myfile << CHANCE << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {

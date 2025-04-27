@@ -27,11 +27,11 @@
 # echo 4200000 | sudo tee /sys/devices/system/cpu/cpu17/cpufreq/scaling_max_freq
 # echo 4200000 | sudo tee /sys/devices/system/cpu/cpu18/cpufreq/scaling_max_freq
 
-for i in $(seq 0 3); do
-  echo 2300000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
+for i in $(seq 0 4); do
+  echo 5300000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
 done
 for i in $(seq 4 27); do
-  echo 1200000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
+  echo 4200000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
 done
 
 cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
