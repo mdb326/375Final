@@ -14,9 +14,9 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 2
+#define THREADS 28
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 1
+#define BALANCETHREADS 4
 
 std::chrono::duration<double> times[THREADS];
 double powers[THREADS];
@@ -246,9 +246,10 @@ int main(int argc, char **argv) {
     printf("Total %d Threaded power: %lf seconds\n", THREADS, maxEnergy);
 
     
-    int number = 1300000;
+    int number1 = 2300000;
+    int number2 = 1200000;
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
-    myfile << number << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
+    myfile << THREADS << "," << number1 << "," << number2 << "," << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
@@ -264,4 +265,4 @@ int main(int argc, char **argv) {
     // std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
     // std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
     std::cout << "LEFT: " << balancesLeft << std::endl;
-}
+}int number1 = 5300000;

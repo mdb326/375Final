@@ -11,7 +11,7 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 16
+#define THREADS 28
 #define ITERATIONS 2000000
 
 //is there a dfiference between vector and array here?
