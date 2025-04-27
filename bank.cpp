@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
     for(unsigned int i = THREADS-BALANCETHREADS; i < THREADS; i++){ //fast for contains
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(i, &cpuset);
+        CPU_SET((THREADS-BALANCETHREADS)-i, &cpuset);
         int rc = pthread_setaffinity_np(threads[i].native_handle(),
                                         sizeof(cpu_set_t), &cpuset);
     }
@@ -246,9 +246,9 @@ int main(int argc, char **argv) {
     printf("Total %d Threaded power: %lf seconds\n", THREADS, maxEnergy);
 
     
-    int number = 1200000;
+    int number = 1300000;
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
-    myfile << number << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
+    myfile << number << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
