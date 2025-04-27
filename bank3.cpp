@@ -13,7 +13,7 @@
 #define TOTAL 100000
 #define THREADS 16
 #define ITERATIONS 2000000
-#define CHANCE 30
+#define CHANCE 95
 
 //is there a dfiference between vector and array here?
 std::chrono::duration<double> times[THREADS];

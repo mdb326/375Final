@@ -16,7 +16,7 @@
 #define TOTAL 100000
 #define THREADS 28
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 4
+#define BALANCETHREADS 3
 #define CHANCE 95
 
 std::chrono::duration<double> times[THREADS];
@@ -181,10 +181,6 @@ void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool t
     }
 }
 
-void checkAffinity(int threadNum){
-    std::cout << "Thread #" << threadNum << ": on CPU " << sched_getcpu() << "\n";
-}
-
 int main(int argc, char **argv) {
     std::ofstream myfile("Results.txt", std::ios_base::app);
 
@@ -260,7 +256,7 @@ int main(int argc, char **argv) {
     int number1 = 2300000;
     int number2 = 1200000;
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
-    myfile << CHANCE << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
+    myfile << BALANCETHREADS << "," << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
