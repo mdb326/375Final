@@ -14,9 +14,9 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 28
+#define THREADS 2
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 4
+#define BALANCETHREADS 1
 
 std::chrono::duration<double> times[THREADS];
 double powers[THREADS];
