@@ -10,6 +10,7 @@
 #include <iostream>
 #include <condition_variable>
 #include <atomic>
+#include <fstream>
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
@@ -18,6 +19,7 @@
 #define BALANCETHREADS 4
 
 std::chrono::duration<double> times[THREADS];
+double powers[THREADS];
 std::mutex m;
 std::array<std::mutex, ACCOUNTS> mutexes;
 std::array<std::shared_mutex, THREADS> threadMutexes;
@@ -121,6 +123,7 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
     times[threadNum] = exec_time_i;
+    powers[threadNum] = energy_used;
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool threaded){
@@ -145,6 +148,7 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
     double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
     duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
     times[threadNum] = exec_time_i;
+    powers[threadNum] = energy_used;
     std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
 }
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded) {
@@ -171,11 +175,16 @@ void checkAffinity(int threadNum){
 }
 
 int main(int argc, char **argv) {
+    std::ofstream myfile("Results.txt", std::ios_base::app);
+
     // std::cout << std::thread::hardware_concurrency() << std::endl;
     std::map<int, float> bank; //id, amount
     //fill up accounts
     for(int i = 0; i < ACCOUNTS; i++){
         bank.insert({i, TOTAL / ACCOUNTS});
+    }
+    for(int i = 0; i < THREADS; i++){
+        powers[i] = 0.0;
     }
     //create threads and do their work
     std::thread threads[THREADS];
@@ -223,16 +232,23 @@ int main(int argc, char **argv) {
 
     std::cout << "---------" << std::endl;
     double maxTime = 0.0;
+    double maxEnergy = 0.0;
     for(int i = 0; i < THREADS-BALANCETHREADS; i++){
         if(times[i].count() > maxTime){
             maxTime = times[i].count();
         }
+        if(powers[i] > maxEnergy){
+            maxEnergy = powers[i];
+        }
     }
 
     printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    printf("Total %d Threaded power: %lf seconds\n", THREADS, maxEnergy);
 
+    
 
     do_work_single(std::ref(bank), 0, ITERATIONS, false);
+    myfile << maxTime << "," << maxEnergy << "," << times[0].count() << "," << powers[0] << std::endl;
     printf("Total nonthreaded time: %lf seconds\n", times[0].count());
     auto it = bank.begin();
     while (it != bank.end()) {
