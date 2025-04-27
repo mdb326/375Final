@@ -13,9 +13,9 @@
 
 #define ACCOUNTS 1000
 #define TOTAL 100000
-#define THREADS 16
+#define THREADS 28
 #define ITERATIONS 2000000 // 2,000,000 total - 100,000 deposit and 1,900,000 balance
-#define BALANCETHREADS 3
+#define BALANCETHREADS 4
 
 std::chrono::duration<double> times[THREADS];
 std::mutex m;
@@ -103,6 +103,11 @@ void do_work(std::map<int, float>& bank, int threadNum, int iter, bool threaded)
     for (int i = 0; i < iter; i++) {
         int choice = generateRandomInt(0, 99);
         if (choice < 95) {
+            // if (i == iter/2){
+            //     std::cout << "Balances:" << balanceCounter << " Deposits: " << depositCounter << std::endl;
+            //     std::cout << "TOTAL: " << balanceCounter + depositCounter << std::endl;
+            //     std::cout << "LEFT: " << balancesLeft << std::endl;
+            // }
             // depositCounter++;
             deposit(bank, threaded, threadNum);
         } else {
@@ -145,13 +150,12 @@ void do_work_single(std::map<int, float>& bank, int threadNum, int iter, bool th
 void do_work_balance(std::map<int, float>& bank, int threadNum, int iter, bool threaded) {
     while (true) {
         std::unique_lock<std::mutex> lock(m);
-        balanceCV.wait(lock, [] { return balancesLeft > 0 || finished; });
+        balanceCV.wait(lock, [&] { return balancesLeft > 0 || finished.load(); });
 
         if (balancesLeft > 0) {
             balancesLeft--;
             lock.unlock();
 
-            // balanceCounter++;
             float tot = balance(bank, threaded, THREADS);
             if (tot != TOTAL) {
                 printf("Balance failed: %f\n", tot);
@@ -177,13 +181,13 @@ int main(int argc, char **argv) {
     std::thread threads[THREADS];
 
 
-
-    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
-        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / (THREADS-BALANCETHREADS), true);
-    }
     for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
         threads[i] = std::thread(do_work_balance, std::ref(bank), i, ITERATIONS / THREADS, true);
     }
+    for(int i = 0; i < THREADS-BALANCETHREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(bank), i, ITERATIONS / (THREADS-BALANCETHREADS), true);
+    }
+    
 
     for(unsigned int i = 0; i < THREADS-BALANCETHREADS; i++){ //slow threads
         cpu_set_t cpuset;
@@ -205,9 +209,10 @@ int main(int argc, char **argv) {
         threads[i].join();
     }
     finished = true;
-    // for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
-    //     threads[i].join();
-    // }
+    balanceCV.notify_all();
+    for(int i = THREADS-BALANCETHREADS; i < THREADS; i++){
+        threads[i].join();
+    }
     float tot = balance(bank, true, THREADS);
     if(tot != TOTAL){
         printf("Balance failed: %f\n", tot);
