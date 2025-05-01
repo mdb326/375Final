@@ -14,6 +14,7 @@ public:
     int size();
     bool contains(T value);
     void display();
+    void add(T value);
 
 private:
     int maxSize;
@@ -85,4 +86,15 @@ void ConcurrentList<T>::resize(int newSize) {
     
     maxSize = newSize;
     data.resize(newSize);
+}
+
+template <typename T>
+void ConcurrentList<T>::add(T value) {
+    if (data.size() < maxSize) {
+        data.push_back(value);
+    } else {
+        resize(maxSize * 2);
+        maxSize *= 2;
+        data.push_back(value);
+    }
 }
