@@ -5,38 +5,40 @@
 #include <random>
 
 template <typename T>
-class ArrayList {
+class ConcurrentList {
 public:
-    ArrayList();
-    ArrayList(int _size);
+    ConcurrentList();
+    ConcurrentList(int _size);
     bool set(int index, T value);
     T get(int index);
     int size();
     bool contains(T value);
     void display();
-    void add (T value);
 
 private:
     int maxSize;
     std::vector<T> data;
+    // std::vector<std::shared_ptr<std::shared_mutex>> locks;
 
     void resize(int newSize);
 };
 
 template <typename T>
-ArrayList<T>::ArrayList() {
+ConcurrentList<T>::ConcurrentList() {
     maxSize = 16;
     data.resize(maxSize);
+    // locks.resize(maxSize);
 }
 
 template <typename T>
-ArrayList<T>::ArrayList(int _size) {
+ConcurrentList<T>::ConcurrentList(int _size) {
     maxSize = _size;
     data.resize(maxSize);
+    // locks.resize(maxSize);
 }
 
 template <typename T>
-bool ArrayList<T>::set(int index, T value) {
+bool ConcurrentList<T>::set(int index, T value) {
     if (index >= 0 && index < maxSize) {
         data[index] = value;
         return true;
@@ -45,7 +47,7 @@ bool ArrayList<T>::set(int index, T value) {
 }
 
 template <typename T>
-T ArrayList<T>::get(int index) {
+T ConcurrentList<T>::get(int index) {
     if (index >= 0 && index < maxSize) {
         return data[index];
     }
@@ -53,12 +55,12 @@ T ArrayList<T>::get(int index) {
 }
 
 template <typename T>
-int ArrayList<T>::size() {
+int ConcurrentList<T>::size() {
     return maxSize;
 }
 
 template <typename T>
-bool ArrayList<T>::contains(T value) {
+bool ConcurrentList<T>::contains(T value) {
     for (const auto& elem : data) {
         if (elem == value) {
             return true;
@@ -68,7 +70,7 @@ bool ArrayList<T>::contains(T value) {
 }
 
 template <typename T>
-void ArrayList<T>::display() {
+void ConcurrentList<T>::display() {
     for (const auto& elem : data) {
         std::cout << elem << " ";
     }
@@ -76,22 +78,11 @@ void ArrayList<T>::display() {
 }
 
 template <typename T>
-void ArrayList<T>::resize(int newSize) {
+void ConcurrentList<T>::resize(int newSize) {
     if (newSize < 0) {
         throw std::invalid_argument("New size cannot be negative");
     }
     
     maxSize = newSize;
     data.resize(newSize);
-}
-
-template <typename T>
-void ArrayList<T>::add(T value) {
-    if (data.size() < maxSize) {
-        data.push_back(value);
-    } else {
-        resize(maxSize * 2);
-        maxSize *= 2;
-        data.push_back(value);
-    }
 }
