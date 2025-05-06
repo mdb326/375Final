@@ -10,9 +10,9 @@
 #include "ConcurrentList.h"
 
 #define THREADS 16
-#define NUM_ITERATIONS 1000000
-#define CONTAINSPER 4
-#define ADDSPER 8
+#define NUM_ITERATIONS 100000
+#define CONTAINSPER 1
+#define ADDSPER 55
 
 std::chrono::duration<double> times[THREADS];
 
@@ -23,7 +23,7 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size);
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size);
 
 int main() {
-    int size = 500;
+    int size = 50;
 
     ArrayList<int> list1(size);
 
@@ -58,7 +58,7 @@ int main() {
 void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
-        int num = generateRandomInteger(1, 10);
+        int num = generateRandomInteger(1, 100);
         if (num <= CONTAINSPER) {
             list.contains(generateRandomVal(size));
         } else if (num <= ADDSPER) {
@@ -74,7 +74,7 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
-        int num = generateRandomInteger(1, 10);
+        int num = generateRandomInteger(1, 100);
         if (num <= CONTAINSPER) {
             list.contains(generateRandomVal(size));
         } else if (num <= ADDSPER) {
