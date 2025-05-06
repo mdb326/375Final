@@ -9,10 +9,10 @@
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
-#define THREADS 4
+#define THREADS 16
 #define NUM_ITERATIONS 1000000
-#define CONTAINSPER 8
-#define ADDSPER 9
+#define CONTAINSPER 2
+#define ADDSPER 6
 
 std::chrono::duration<double> times[THREADS];
 int deltas[THREADS];
@@ -24,16 +24,34 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size);
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size);
 
 int main() {
+    int size = 500;
 
-    ArrayList<int> list(10);
-    list.set(0, 5);
-    list.set(1, 10);
-    list.display();
+    ArrayList<int> list1(size);
 
-    ConcurrentList<int> list2(10);
-    list2.set(0, 5);
-    list2.set(1, 10);
-    list2.display();
+    ConcurrentList<int> list2(size);
+
+    std::thread threads[THREADS];
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
+    }
+
+    for (auto &th : threads){
+        th.join();
+    }
+
+    double maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+
+    printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
+
+
+    do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
+
+    printf("Total Sequential time: %lf seconds\n", times[0].count());
 
     return 0;
 }
@@ -45,10 +63,10 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
         if (num <= CONTAINSPER) {
             list.contains(generateRandomVal(size));
         } else if (num <= ADDSPER) {
-            list.add(generateRandomVal(size));
+            list.set(generateRandomVal(size), generateRandomVal(size));
             deltas[threadNum]++;
         } else {
-            if(list.get(generateRandomVal(size))){
+            if(list.get(generateRandomVal(size)-1)){
                 deltas[threadNum]--;
             }
         }

@@ -25,6 +25,7 @@ private:
     std::vector<std::shared_ptr<std::shared_mutex>> locks;
     std::mutex add_mutex;
 
+
     void resize(int newSize);
 };
 
@@ -104,15 +105,32 @@ void ConcurrentList<T>::resize(int newSize) {
     if (newSize < 0) {
         throw std::invalid_argument("New size cannot be negative");
     }
-    for(int i = 0; i < maxSize; i++){
-        locks[i]->lock_shared();
+
+    // Step 1: Lock all existing locks exclusively to prevent data races
+    std::vector<std::unique_lock<std::shared_mutex>> heldLocks;
+    for (int i = 0; i < maxSize; ++i) {
+        heldLocks.emplace_back(*locks[i]); // exclusive lock via RAII
     }
-    maxSize = newSize;
+
+    // Step 2: Resize the data vector
     data.resize(newSize);
-    for(int i = 0; i < maxSize; i++){
-        locks[i]->unlock_shared();
+
+    // Step 3: Resize and initialize the locks vector if needed
+    if (newSize > maxSize) {
+        locks.resize(newSize);
+        for (int i = maxSize; i < newSize; ++i) {
+            locks[i] = std::make_shared<std::shared_mutex>();
+        }
+    } else {
+        locks.resize(newSize); // safely shrink locks
     }
+
+    // Step 4: Update maxSize
+    maxSize = newSize;
+
+    // Step 5: Locks are automatically released when `heldLocks` goes out of scope
 }
+
 
 template <typename T>
 void ConcurrentList<T>::add(T value) {
