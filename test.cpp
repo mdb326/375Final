@@ -11,11 +11,10 @@
 
 #define THREADS 16
 #define NUM_ITERATIONS 1000000
-#define CONTAINSPER 2
-#define ADDSPER 6
+#define CONTAINSPER 4
+#define ADDSPER 8
 
 std::chrono::duration<double> times[THREADS];
-int deltas[THREADS];
 
 
 int generateRandomVal(int size);
@@ -64,11 +63,8 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
             list.contains(generateRandomVal(size));
         } else if (num <= ADDSPER) {
             list.set(generateRandomVal(size), generateRandomVal(size));
-            deltas[threadNum]++;
         } else {
-            if(list.get(generateRandomVal(size)-1)){
-                deltas[threadNum]--;
-            }
+            list.get(generateRandomVal(size)-1);
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -83,11 +79,8 @@ void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size){
             list.contains(generateRandomVal(size));
         } else if (num <= ADDSPER) {
             list.add(generateRandomVal(size));
-            deltas[threadNum]++;
         } else {
-            if(list.get(generateRandomVal(size))){
-                deltas[threadNum]--;
-            }
+            list.get(generateRandomVal(size)-1);
         }
     }
     auto end = std::chrono::high_resolution_clock::now();

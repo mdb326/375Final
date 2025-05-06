@@ -75,19 +75,11 @@ int ConcurrentList<T>::size() {
 
 template <typename T>
 bool ConcurrentList<T>::contains(T value) {
-    for(int i = 0; i < maxSize; i++){
-        locks[i]->lock_shared();
-    }
-    for (const auto& elem : data) {
-        if (elem == value) {
-            for(int i = 0; i < maxSize; i++){
-                locks[i]->unlock_shared();
-            }
+    for (int i = 0; i < data.size(); i++) {
+        std::shared_lock<std::shared_mutex> lock(*(locks[i]));
+        if (data[i] == value) {
             return true;
         }
-    }
-    for(int i = 0; i < maxSize; i++){
-        locks[i]->unlock_shared();
     }
     return false;
 }
