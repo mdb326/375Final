@@ -6,6 +6,8 @@
 #include <shared_mutex>
 #include <thread>
 #include <mutex>
+#include <shared_mutex>
+#include <memory>
 
 template <typename T>
 class ConcurrentList {
