@@ -11,8 +11,8 @@
 
 #define THREADS 16
 #define NUM_ITERATIONS 100000
-#define CONTAINSPER 10
-#define ADDSPER 55
+#define CONTAINSPER 90
+#define ADDSPER 95
 
 std::chrono::duration<double> times[THREADS];
 
@@ -23,7 +23,7 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size);
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size);
 
 int main() {
-    int size = 4096;
+    int size = 262144;
 
     ArrayList<int> list1(size);
 

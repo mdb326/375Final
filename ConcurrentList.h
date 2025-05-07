@@ -33,7 +33,7 @@ private:
 template <typename T>
 ConcurrentList<T>::ConcurrentList() {
     maxSize = 16;
-    stripeFactor = 64;
+    stripeFactor = 1024;
     data.resize(maxSize);
     locks.resize(maxSize / stripeFactor);
     for(int i = 0; i < maxSize / stripeFactor; i++){
@@ -44,7 +44,7 @@ ConcurrentList<T>::ConcurrentList() {
 template <typename T>
 ConcurrentList<T>::ConcurrentList(int _size) {
     maxSize = _size;
-    stripeFactor = 64;
+    stripeFactor = 1024;
     data.resize(maxSize);
     locks.resize(maxSize / stripeFactor);
     for(int i = 0; i < maxSize / stripeFactor; i++){
