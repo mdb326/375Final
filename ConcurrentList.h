@@ -21,6 +21,7 @@ public:
 
 private:
     int maxSize;
+    int stripeFactor;
     std::vector<T> data;
     std::vector<std::shared_ptr<std::shared_mutex>> locks;
     std::mutex add_mutex;
@@ -32,9 +33,10 @@ private:
 template <typename T>
 ConcurrentList<T>::ConcurrentList() {
     maxSize = 16;
+    stripeFactor = 64;
     data.resize(maxSize);
-    locks.resize(maxSize);
-    for(int i = 0; i < maxSize; i++){
+    locks.resize(maxSize / stripeFactor);
+    for(int i = 0; i < maxSize / stripeFactor; i++){
         locks[i] = std::make_shared<std::shared_mutex>();
     }
 }
@@ -42,9 +44,10 @@ ConcurrentList<T>::ConcurrentList() {
 template <typename T>
 ConcurrentList<T>::ConcurrentList(int _size) {
     maxSize = _size;
+    stripeFactor = 64;
     data.resize(maxSize);
-    locks.resize(maxSize);
-    for(int i = 0; i < maxSize; i++){
+    locks.resize(maxSize / stripeFactor);
+    for(int i = 0; i < maxSize / stripeFactor; i++){
         locks[i] = std::make_shared<std::shared_mutex>();
     }
 }
@@ -52,7 +55,7 @@ ConcurrentList<T>::ConcurrentList(int _size) {
 template <typename T>
 bool ConcurrentList<T>::set(int index, T value) {
     if (index >= 0 && index < maxSize) {
-        std::unique_lock<std::shared_mutex> lock(*(locks[index]));
+        std::unique_lock<std::shared_mutex> lock(*(locks[index/stripeFactor]));
         data[index] = value;
         return true;
     }
@@ -62,7 +65,7 @@ bool ConcurrentList<T>::set(int index, T value) {
 template <typename T>
 T ConcurrentList<T>::get(int index) {
     if (index >= 0 && index < maxSize) {
-        std::shared_lock<std::shared_mutex> lock(*(locks[index]));
+        std::shared_lock<std::shared_mutex> lock(*(locks[index/stripeFactor]));
         return data[index];
     }
     throw std::out_of_range("Index out of range");
@@ -75,12 +78,16 @@ int ConcurrentList<T>::size() {
 
 template <typename T>
 bool ConcurrentList<T>::contains(T value) {
-    for (int i = 0; i < data.size(); i++) {
-        std::shared_lock<std::shared_mutex> lock(*(locks[i]));
-        if (data[i] == value) {
-            return true;
+    for (int stripe = 0; stripe < locks.size(); stripe++) {
+        std::shared_lock<std::shared_mutex> lock(*locks[stripe]);
+        int end = (stripe * stripeFactor + stripeFactor < data.size()) ? (stripe * stripeFactor + stripeFactor) : data.size();
+        for (int i = stripe * stripeFactor; i < end; ++i) {
+            if (data[i] == value) {
+                return true;
+            }
         }
     }
+    
     return false;
 }
 
@@ -98,29 +105,23 @@ void ConcurrentList<T>::resize(int newSize) {
         throw std::invalid_argument("New size cannot be negative");
     }
 
-    // Step 1: Lock all existing locks exclusively to prevent data races
     std::vector<std::unique_lock<std::shared_mutex>> heldLocks;
-    for (int i = 0; i < maxSize; ++i) {
-        heldLocks.emplace_back(*locks[i]); // exclusive lock via RAII
+    for (int i = 0; i < maxSize/stripeFactor; ++i) {
+        heldLocks.emplace_back(*locks[i]);
     }
 
-    // Step 2: Resize the data vector
     data.resize(newSize);
 
-    // Step 3: Resize and initialize the locks vector if needed
     if (newSize > maxSize) {
-        locks.resize(newSize);
-        for (int i = maxSize; i < newSize; ++i) {
+        locks.resize(newSize/stripeFactor);
+        for (int i = maxSize/stripeFactor; i < newSize; ++i) {
             locks[i] = std::make_shared<std::shared_mutex>();
         }
     } else {
-        locks.resize(newSize); // safely shrink locks
+        locks.resize(newSize/stripeFactor); // safely shrink locks
     }
 
-    // Step 4: Update maxSize
     maxSize = newSize;
-
-    // Step 5: Locks are automatically released when `heldLocks` goes out of scope
 }
 
 
