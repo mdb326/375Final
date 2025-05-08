@@ -13,7 +13,7 @@
 #include "ConcurrentList.h"
 
 #define THREADS 16
-#define CONTAINSTHREADS 16
+#define CONTAINSTHREADS 14
 #define NUM_ITERATIONS 100000
 #define CONTAINSPER 90
 #define ADDSPER 95
@@ -32,6 +32,7 @@ int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
 void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size);
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size);
+void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int size);
 double read_power(const std::string& power_file);
 
 int main() {
@@ -47,7 +48,7 @@ int main() {
     std::thread threads[THREADS];
     
     for(int i = THREADS-CONTAINSTHREADS; i < THREADS; i++){
-        threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
+        threads[i] = std::thread(do_workContains, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
     }
     for(int i = 0; i < THREADS-CONTAINSTHREADS; i++){
         threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
@@ -93,7 +94,7 @@ int main() {
     printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
     printf("Total %d Threaded power: %lf Joules\n", THREADS, maxEnergy);
 
-
+    std::cout << containsLeft << std::endl;
 
     do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
 
@@ -109,7 +110,9 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 100);
         if (num <= CONTAINSPER) {
-            list.contains(generateRandomVal(size));
+            std::unique_lock<std::mutex> lock(m);
+            containsLeft++;
+            balanceCV.notify_all();
         } else if (num <= ADDSPER) {
             list.set(generateRandomVal(size), generateRandomVal(size));
         } else {
@@ -144,7 +147,6 @@ void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int siz
             duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
             times[threadNum] = exec_time_i;
             powers[threadNum] = energy_used;
-            std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
             return;
         }
     }
