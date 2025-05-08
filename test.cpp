@@ -8,6 +8,7 @@
 #include <time.h>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
@@ -18,9 +19,12 @@
 #define ADDSPER 95
 
 std::chrono::duration<double> times[THREADS];
-std::condition_variable balanceCV;
+double powers[THREADS];
 
-std::atomic<int> balancesLeft = 0;
+std::condition_variable balanceCV;
+std::mutex m;
+
+std::atomic<int> containsLeft = 0;
 std::atomic<bool> finished = false;
 
 
@@ -103,6 +107,33 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
     times[threadNum] = exec_time_i;
+}
+
+void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int size){
+
+    using namespace std::chrono;
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    while (true) {
+        std::unique_lock<std::mutex> lock(m);
+        balanceCV.wait(lock, [&] { return containsLeft > 0 || finished.load(); });
+
+        if (containsLeft > 0) {
+            containsLeft--;
+            lock.unlock();
+
+            list.contains(generateRandomVal(size));
+        } else if (finished) {
+            high_resolution_clock::time_point t2 = high_resolution_clock::now();
+            double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+            double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+            duration<double> exec_time_i = duration_cast<duration<double>>(t2 - t1);
+            times[threadNum] = exec_time_i;
+            powers[threadNum] = energy_used;
+            std::cout << "Thread " << threadNum << " finished in " << exec_time_i.count() << " sec, energy used: " << energy_used << " J\n";
+            return;
+        }
+    }
 }
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
