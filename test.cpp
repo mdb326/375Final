@@ -6,21 +6,29 @@
 #include <string>
 #include <unistd.h>
 #include <time.h>
+#include <atomic>
+#include <condition_variable>
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
 #define THREADS 16
+#define CONTAINSTHREADS 16
 #define NUM_ITERATIONS 100000
 #define CONTAINSPER 90
 #define ADDSPER 95
 
 std::chrono::duration<double> times[THREADS];
+std::condition_variable balanceCV;
+
+std::atomic<int> balancesLeft = 0;
+std::atomic<bool> finished = false;
 
 
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
 void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size);
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size);
+double read_power(const std::string& power_file);
 
 int main() {
     int size = 262144;
@@ -30,12 +38,37 @@ int main() {
     ConcurrentList<int> list2(size);
 
     std::thread threads[THREADS];
-    for(int i = 0; i < THREADS; i++){
+    for(int i = THREADS-CONTAINSTHREADS; i < THREADS; i++){
         threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
     }
+    for(int i = 0; i < THREADS-CONTAINSTHREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
+    }
+    
 
-    for (auto &th : threads){
-        th.join();
+    for(unsigned int i = 0; i < THREADS-CONTAINSTHREADS; i++){ //slow threads
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(27-i, &cpuset);
+        int rc = pthread_setaffinity_np(threads[i].native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+    }
+
+    for(unsigned int i = THREADS-CONTAINSTHREADS; i < THREADS; i++){ //fast for contains
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET((THREADS-CONTAINSTHREADS)-i, &cpuset);
+        int rc = pthread_setaffinity_np(threads[i].native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+    }
+
+    for(int i = 0; i < THREADS-CONTAINSTHREADS; i++){
+        threads[i].join();
+    }
+    finished = true;
+    balanceCV.notify_all();
+    for(int i = THREADS-CONTAINSTHREADS; i < THREADS; i++){
+        threads[i].join();
     }
 
     double maxTime = 0.0;
@@ -102,4 +135,15 @@ int generateRandomInteger(int min, int max) {
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
 
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
+}
+
+//Function to read power usage from the interface
+double read_power(const std::string& power_file) {
+    std::ifstream power_stream(power_file);
+    double power = 0.0;
+    if (power_stream.is_open()) {
+        power_stream >> power;
+        power_stream.close();
+    }
+    return power;
 }
