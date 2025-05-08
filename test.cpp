@@ -36,12 +36,16 @@ double read_power(const std::string& power_file);
 
 int main() {
     int size = 262144;
+    for(int i = 0; i < THREADS; i++){
+        powers[i] = 0.0;
+    }
 
     ArrayList<int> list1(size);
 
     ConcurrentList<int> list2(size);
 
     std::thread threads[THREADS];
+    
     for(int i = THREADS-CONTAINSTHREADS; i < THREADS; i++){
         threads[i] = std::thread(do_work, std::ref(list2), i, NUM_ITERATIONS/THREADS, size);
     }
@@ -76,23 +80,31 @@ int main() {
     }
 
     double maxTime = 0.0;
+    double maxEnergy = 0.0;
     for(int i = 0; i < THREADS; i++){
         if(times[i].count() > maxTime){
             maxTime = times[i].count();
         }
+        if(powers[i] > maxEnergy){
+            maxEnergy = powers[i];
+        }
     }
 
     printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    printf("Total %d Threaded power: %lf Joules\n", THREADS, maxEnergy);
+
 
 
     do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
 
     printf("Total Sequential time: %lf seconds\n", times[0].count());
+    printf("Total Sequential power: %lf Joules\n", powers[0]);
 
     return 0;
 }
 
 void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 100);
@@ -106,11 +118,13 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    powers[threadNum] = energy_used;
     times[threadNum] = exec_time_i;
 }
 
 void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int size){
-
     using namespace std::chrono;
     double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
