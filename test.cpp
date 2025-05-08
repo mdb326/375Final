@@ -150,6 +150,7 @@ void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int siz
     }
 }
 void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size){
+    double initial_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 100);
@@ -162,6 +163,9 @@ void do_workSynch(ArrayList<int>& list, int threadNum, int iter, int size){
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
+    double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
+    double energy_used = (final_power - initial_power) / 1e6; // Convert microjoules to joules
+    powers[threadNum] = energy_used;
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
     times[threadNum] = exec_time_i;
 }
