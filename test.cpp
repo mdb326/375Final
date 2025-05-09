@@ -9,6 +9,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
@@ -24,6 +25,7 @@ double powers[THREADS];
 std::condition_variable balanceCV;
 std::mutex m;
 
+std::queue<int> containsOperations;
 std::atomic<int> containsLeft = 0;
 std::atomic<bool> finished = false;
 
@@ -112,6 +114,7 @@ void do_work(ConcurrentList<int>& list, int threadNum, int iter, int size){
         if (num <= CONTAINSPER) {
             std::unique_lock<std::mutex> lock(m);
             containsLeft++;
+            containsOperations.push(generateRandomVal(size));
             balanceCV.notify_all();
         } else if (num <= ADDSPER) {
             list.set(generateRandomVal(size), generateRandomVal(size));
@@ -136,10 +139,12 @@ void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int siz
         balanceCV.wait(lock, [&] { return containsLeft > 0 || finished.load(); });
 
         if (containsLeft > 0) {
-            containsLeft--;
+            containsLeft--;         
+            int val= containsOperations.front();
+            containsOperations.pop();
             lock.unlock();
-
-            list.contains(generateRandomVal(size));
+            
+            list.contains(val);
         } else if (finished) {
             high_resolution_clock::time_point t2 = high_resolution_clock::now();
             double final_power = read_power("/sys/class/powercap/intel-rapl:0/energy_uj");
