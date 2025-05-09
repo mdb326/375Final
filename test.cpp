@@ -102,14 +102,14 @@ int main() {
 
     std::cout << containsLeft << std::endl;
 
-    do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
+    // do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
 
-    maxEnergy = powers[0];
-    maxTime = times[0].count();
-    printf("Total Sequential time: %lf seconds\n", maxTime);
-    printf("Total Sequential power: %lf Joules\n", maxEnergy);
-    std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
-    myfile << maxTime << "," << maxEnergy << "," << maxEnergy / maxTime << std::endl;
+    // maxEnergy = powers[0];
+    // maxTime = times[0].count();
+    // printf("Total Sequential time: %lf seconds\n", maxTime);
+    // printf("Total Sequential power: %lf Joules\n", maxEnergy);
+    // std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
+    // myfile << maxTime << "," << maxEnergy << "," << maxEnergy / maxTime << std::endl;
 
     return 0;
 }
