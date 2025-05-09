@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <fstream>
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
@@ -38,6 +39,7 @@ void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int siz
 double read_power(const std::string& power_file);
 
 int main() {
+    std::ofstream myfile("Results.txt", std::ios_base::app);
     int size = 262144;
     for(int i = 0; i < THREADS; i++){
         powers[i] = 0.0;
@@ -96,6 +98,7 @@ int main() {
     printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
     printf("Total %d Threaded power: %lf Joules\n", THREADS, maxEnergy);
     std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
+    myfile << maxTime << "," << maxEnergy << ","  << maxEnergy / maxTime << "," ;
 
     std::cout << containsLeft << std::endl;
 
@@ -106,6 +109,7 @@ int main() {
     printf("Total Sequential time: %lf seconds\n", maxTime);
     printf("Total Sequential power: %lf Joules\n", maxEnergy);
     std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
+    myfile << maxTime << "," << maxEnergy << "," << maxEnergy / maxTime << std::endl;
 
     return 0;
 }
