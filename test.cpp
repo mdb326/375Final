@@ -98,7 +98,7 @@ int main() {
     printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
     printf("Total %d Threaded power: %lf Joules\n", THREADS, maxEnergy);
     std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
-    myfile << maxTime << "," << maxEnergy << ","  << maxEnergy / maxTime << "," ;
+    myfile << maxTime << "," << maxEnergy << ","  << maxEnergy / maxTime << std::endl;
 
     std::cout << containsLeft << std::endl;
 
