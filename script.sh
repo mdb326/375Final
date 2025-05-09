@@ -6,5 +6,5 @@
 # sudo ./test2
 # # sudo ./bank
 
-# sh cores.sh
+sh cores.sh
 sudo ./test2
