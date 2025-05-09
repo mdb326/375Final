@@ -95,6 +95,7 @@ int main() {
 
     printf("Total Parallel %d Threaded time: %lf seconds\n", THREADS, maxTime);
     printf("Total %d Threaded power: %lf Joules\n", THREADS, maxEnergy);
+    std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
 
     std::cout << containsLeft << std::endl;
 
@@ -102,6 +103,8 @@ int main() {
 
     printf("Total Sequential time: %lf seconds\n", times[0].count());
     printf("Total Sequential power: %lf Joules\n", powers[0]);
+    std::cout << "Parallel Power per second: " << times[0].count() / powers[0] << " J/s"<< std::endl;
+
 
     return 0;
 }
