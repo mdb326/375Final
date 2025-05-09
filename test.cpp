@@ -101,10 +101,11 @@ int main() {
 
     do_workSynch(std::ref(list1), 0, NUM_ITERATIONS, size);
 
-    printf("Total Sequential time: %lf seconds\n", times[0].count());
-    printf("Total Sequential power: %lf Joules\n", powers[0]);
-    std::cout << "Parallel Power per second: " << times[0].count() / powers[0] << " J/s"<< std::endl;
-
+    maxEnergy = powers[0];
+    maxTime = times[0].count();
+    printf("Total Sequential time: %lf seconds\n", maxTime);
+    printf("Total Sequential power: %lf Joules\n", maxEnergy);
+    std::cout << "Parallel Power per second: " << maxEnergy / maxTime << " J/s"<< std::endl;
 
     return 0;
 }
