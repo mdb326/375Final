@@ -14,8 +14,8 @@
 #include "ArrayList.h"
 #include "ConcurrentList.h"
 
-#define THREADS 16
-#define CONTAINSTHREADS 14
+#define THREADS 28
+#define CONTAINSTHREADS 26
 #define NUM_ITERATIONS 100000
 #define CONTAINSPER 90
 #define ADDSPER 95
