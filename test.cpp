@@ -39,7 +39,7 @@ void do_workContains(ConcurrentList<int>& list, int threadNum, int iter, int siz
 double read_power(const std::string& power_file);
 
 int main() {
-    std::ofstream myfile("Results.txt", std::ios_base::app);
+    std::ofstream myfile("Results.csv", std::ios_base::app);
     int size = 262144;
     for(int i = 0; i < THREADS; i++){
         powers[i] = 0.0;
