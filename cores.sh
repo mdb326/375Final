@@ -31,7 +31,7 @@ for i in $(seq 0 25); do
   echo 4200000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
 done
 for i in $(seq 26 27); do
-  echo 4200000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
+  echo 1200000 | sudo tee /sys/devices/system/cpu/cpu$i/cpufreq/scaling_max_freq
 done
 
 cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
